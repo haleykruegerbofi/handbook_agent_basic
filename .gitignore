@@ -15,6 +15,10 @@ env/
 employee_handbook.pdf
 *.pdf
 *.log
+static/*.png
+static/*.jpg
+static/*.jpeg
+static/*.gif
 
 # Testing
 .cache/

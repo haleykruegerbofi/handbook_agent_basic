@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Axos Employee Handbook Assistant</title>
+    <title>Employee Handbook Assistant</title>
     <style>
         * {
             margin: 0;
@@ -12,618 +12,503 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #001a8d9b 0%, #304cc7 100%);
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
+            padding: 20px;
         }
 
         .container {
-            width: 90%;
-            max-width: 900px;
-            height: 85vh;
+            width: 100%;
+            max-width: 800px;
             background: white;
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-            display: flex;
-            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             overflow: hidden;
         }
 
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #001a8d9b 0%, #304cc7 100%);
             color: white;
-            padding: 20px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            padding: 30px;
+            text-align: center;
         }
 
         .header h1 {
-            font-size: 24px;
-            font-weight: 600;
+            font-size: 2rem;
+            margin-bottom: 10px;
         }
 
-        .status {
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background: white;
+            border-radius: 50%;
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 8px 16px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 20px;
-            font-size: 14px;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
 
-        .status-indicator {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #4ade80;
-            animation: pulse 2s infinite;
+        .logo img {
+            max-width: 60px;
+            max-height: 60px;
+            object-fit: contain;
         }
 
-        .status-indicator.offline {
-            background: #f87171;
-            animation: none;
-        }
-
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
+        .logo-emoji {
+            font-size: 48px;
         }
 
         .chat-container {
-            flex: 1;
+            height: 400px;
             overflow-y: auto;
-            padding: 20px 30px;
-            background: #f7f8fc;
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
         }
 
         .message {
             margin-bottom: 20px;
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            animation: fadeIn 0.3s ease-in;
+            animation: slideIn 0.3s ease;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .message.user {
-            flex-direction: row-reverse;
+            text-align: right;
         }
 
-        .message-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            font-weight: 600;
+        .message.user .bubble {
+            background: #304cc7;
             color: white;
-            flex-shrink: 0;
+            margin-left: auto;
         }
 
-        .message.user .message-avatar {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        .message.bot .message-avatar {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        }
-
-        .message-content {
-            max-width: 70%;
-            padding: 12px 16px;
-            border-radius: 18px;
-            line-height: 1.5;
-        }
-
-        .message.user .message-content {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-bottom-right-radius: 4px;
-        }
-
-        .message.bot .message-content {
+        .message.assistant .bubble {
             background: white;
-            color: #1f2937;
-            border: 1px solid #e5e7eb;
-            border-bottom-left-radius: 4px;
+            border: 1px solid #e0e0e0;
         }
 
-        .ticket-card {
-            background: #f3f4f6;
-            border: 1px solid #d1d5db;
-            border-radius: 12px;
-            padding: 16px;
-            margin-top: 12px;
-        }
-
-        .ticket-card h3 {
-            color: #1f2937;
-            font-size: 16px;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .ticket-icon {
-            width: 20px;
-            height: 20px;
-            background: #10b981;
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 12px;
-        }
-
-        .ticket-field {
-            margin-bottom: 10px;
-        }
-
-        .ticket-field label {
-            font-weight: 600;
-            color: #4b5563;
-            font-size: 12px;
-            text-transform: uppercase;
-            display: block;
-            margin-bottom: 4px;
-        }
-
-        .ticket-field p {
-            color: #1f2937;
-            font-size: 14px;
-        }
-
-        .priority-badge {
+        .bubble {
             display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
+            padding: 12px 18px;
+            border-radius: 18px;
+            max-width: 70%;
+            word-wrap: break-word;
         }
 
-        .priority-badge.low { background: #dbeafe; color: #1e40af; }
-        .priority-badge.medium { background: #fed7aa; color: #c2410c; }
-        .priority-badge.high { background: #fecaca; color: #b91c1c; }
-
-        .submit-ticket-btn {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            margin-top: 12px;
-        }
-
-        .submit-ticket-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
-        }
-
-        .submit-ticket-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
+        .message-label {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 5px;
+            font-weight: 500;
         }
 
         .input-container {
-            padding: 20px 30px;
+            padding: 20px;
             background: white;
-            border-top: 1px solid #e5e7eb;
-            display: flex;
-            gap: 12px;
         }
 
         .input-wrapper {
+            display: flex;
+            gap: 10px;
+        }
+
+        .question-input {
             flex: 1;
-            position: relative;
+            padding: 12px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
         }
 
-        .message-input {
-            width: 100%;
-            padding: 12px 16px;
-            border: 2px solid #e5e7eb;
-            border-radius: 12px;
-            font-size: 15px;
-            transition: border-color 0.2s;
-            resize: none;
-            font-family: inherit;
-        }
-
-        .message-input:focus {
+        .question-input:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: #0423ad;
         }
 
-        .send-button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .submit-btn {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #001a8d9b 0%, #304cc7 100%);
             color: white;
             border: none;
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
+            border-radius: 25px;
+            font-size: 1rem;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             transition: transform 0.2s, box-shadow 0.2s;
         }
 
-        .send-button:hover {
+        .submit-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
         }
 
-        .send-button:disabled {
-            opacity: 0.5;
+        .submit-btn:disabled {
+            opacity: 0.6;
             cursor: not-allowed;
             transform: none;
         }
 
-        .typing-indicator {
-            display: none;
-            align-items: center;
-            gap: 4px;
-            padding: 12px 16px;
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 18px;
-            border-bottom-left-radius: 4px;
-            width: fit-content;
+        .ticket-draft {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 10px;
         }
 
-        .typing-indicator.show {
+        .ticket-draft h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .ticket-field {
             display: flex;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
         }
 
-        .typing-dot {
-            width: 8px;
-            height: 8px;
-            background: #9ca3af;
+        .ticket-field strong {
+            min-width: 120px;
+            color: #495057;
+        }
+
+        .ticket-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .ticket-btn {
+            padding: 8px 20px;
+            border-radius: 20px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .ticket-btn.submit {
+            background: #28a745;
+            color: white;
+        }
+
+        .ticket-btn.submit:hover {
+            background: #218838;
+        }
+
+        .ticket-btn.cancel {
+            background: #6c757d;
+            color: white;
+        }
+
+        .ticket-btn.cancel:hover {
+            background: #5a6268;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
             border-radius: 50%;
-            animation: typing 1.4s infinite;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
         }
 
-        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
-        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
-
-        @keyframes typing {
-            0%, 60%, 100% {
-                transform: translateY(0);
-                opacity: 0.7;
-            }
-            30% {
-                transform: translateY(-10px);
-                opacity: 1;
-            }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
         .welcome-message {
             text-align: center;
             padding: 40px;
-            color: #6b7280;
+            color: #6c757d;
         }
 
-        .welcome-message h2 {
-            color: #1f2937;
-            margin-bottom: 12px;
-            font-size: 24px;
+        .welcome-message h3 {
+            margin-bottom: 15px;
+            color: #495057;
         }
-
-        .welcome-message p {
-            font-size: 16px;
-            line-height: 1.5;
-        }
-
-        
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🏢 Axos Employee Handbook Assistant</h1>
-            <div class="status">
-                <div class="status-indicator" id="statusIndicator"></div>
-                <span id="statusText">Checking status...</span>
+            <!-- Logo Section - Axos Bank logo with emoji fallback -->
+            <div class="logo">
+                <img src="/static/Axos_Bank_Palette5-Black.png" alt="Axos Bank" onerror="this.style.display='none'; document.getElementById('logoEmoji').style.display='block';">
+                <span id="logoEmoji" class="logo-emoji" style="display:none;">🏢</span>
             </div>
+            
+            <h1>Axos Employee Handbook Assistant</h1>
+            <p>Ask questions about company policies and procedures</p>
         </div>
-
+        
         <div class="chat-container" id="chatContainer">
             <div class="welcome-message" id="welcomeMessage">
-                <h2>Welcome to the Employee Handbook Assistant</h2>
-                <p>I can help you find information in the Axos employee handbook. Just ask me any question about company policies, benefits, or procedures!</p>
-                <p style="margin-top: 16px; font-size: 14px;">If I can't find the answer in the handbook, I can help you submit a help desk ticket for clarification.</p>
+                <h3>Welcome! How can I help you today?</h3>
+                <p>I can answer questions about our employee handbook, including policies, benefits, procedures, and more.</p>
             </div>
         </div>
-
+        
         <div class="input-container">
-            <div class="input-wrapper">
-                <textarea 
-                    class="message-input" 
-                    id="messageInput" 
+            <form id="questionForm" class="input-wrapper">
+                <input 
+                    type="text" 
+                    id="questionInput" 
+                    class="question-input" 
                     placeholder="Ask a question about the employee handbook..."
-                    rows="1"
-                    onkeypress="handleKeyPress(event)"
-                ></textarea>
-            </div>
-            <button class="send-button" id="sendButton" onclick="sendMessage()">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="22" y1="2" x2="11" y2="13"></line>
-                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                </svg>
-            </button>
+                    required
+                >
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    <span id="btnText">Ask</span>
+                    <span id="btnLoading" class="loading" style="display: none;"></span>
+                </button>
+            </form>
         </div>
     </div>
 
     <script>
-        let handbookLoaded = false;
+        let isProcessing = false;
+        let currentTicketDraft = null;
+        let awaitingTicketResponse = false;
+        let lastQuestion = null;
 
-        // Check handbook status on page load
-        window.onload = function() {
-            checkHandbookStatus();
-        };
-
-        async function checkHandbookStatus() {
-            try {
-                const response = await fetch('/status');
-                const data = await response.json();
-                
-                handbookLoaded = data.handbook_loaded;
-                updateStatus(handbookLoaded);
-                
-                if (handbookLoaded) {
-                    document.getElementById('welcomeMessage').style.display = 'none';
-                }
-            } catch (error) {
-                console.error('Error checking status:', error);
-                updateStatus(false);
-            }
-        }
-
-        function updateStatus(loaded) {
-            const indicator = document.getElementById('statusIndicator');
-            const text = document.getElementById('statusText');
+        document.getElementById('questionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
             
-            if (loaded) {
-                indicator.classList.remove('offline');
-                text.textContent = 'Handbook loaded';
-            } else {
-                indicator.classList.add('offline');
-                text.textContent = 'Handbook not loaded';
-            }
-        }
-
-        
-
-        function handleKeyPress(event) {
-            if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault();
-                sendMessage();
-            }
-        }
-
-        async function sendMessage() {
-            const input = document.getElementById('messageInput');
-            const message = input.value.trim();
+            if (isProcessing) return;
             
-            if (!message) return;
-
-            // Proceed even if handbook is not yet loaded; backend will handle
-
-            // Add user message to chat
-            addMessage('user', message);
+            const input = document.getElementById('questionInput');
+            const question = input.value.trim();
             
-            // Clear input
+            if (!question) return;
+            
+            // Hide welcome message on first question
+            const welcomeMsg = document.getElementById('welcomeMessage');
+            if (welcomeMsg) {
+                welcomeMsg.style.display = 'none';
+            }
+            
+            // Add user message
+            addMessage(question, 'user');
+            
+            // Clear input and disable while processing
             input.value = '';
+            setProcessing(true);
             
-            // Show typing indicator
-            showTypingIndicator();
-            
-            // Disable send button
-            document.getElementById('sendButton').disabled = true;
-
             try {
-                const response = await fetch('/chat', {
+                const response = await fetch('/api/ask', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        message: message,
-                        action: 'ask'
+                    body: JSON.stringify({ 
+                        question: question,
+                        awaiting_response: awaitingTicketResponse 
                     })
                 });
-
+                
                 const data = await response.json();
+                console.log('Response data:', data);
                 
-                // Hide typing indicator
-                hideTypingIndicator();
-                
-                // Add bot response
-                if (data.ticket_drafted && data.ticket_content) {
-                    addMessageWithTicket(data.answer, data.ticket_content);
+                if (response.ok) {
+                    // Always show the answer first
+                    addMessage(data.answer, 'assistant');
+                    
+                    // Check if we should set up for ticket response
+                    if (data.offer_ticket) {
+                        lastQuestion = data.original_question || question;
+                        awaitingTicketResponse = true;
+                    } else if (data.ticket_drafted && data.ticket_content) {
+                        // Full ticket was created
+                        currentTicketDraft = data.ticket_content;
+                        addFullTicket(data.ticket_content);
+                        awaitingTicketResponse = false;
+                    } else {
+                        awaitingTicketResponse = false;
+                    }
                 } else {
-                    addMessage('bot', data.answer);
+                    addMessage('Sorry, I encountered an error. Please try again.', 'assistant');
+                    awaitingTicketResponse = false;
                 }
-
             } catch (error) {
                 console.error('Error:', error);
-                hideTypingIndicator();
-                addMessage('bot', 'Sorry, I encountered an error. Please try again.');
+                addMessage('Sorry, I couldn\'t connect to the server. Please try again.', 'assistant');
+                awaitingTicketResponse = false;
             } finally {
-                document.getElementById('sendButton').disabled = false;
+                setProcessing(false);
             }
-        }
+        });
 
-        function addMessage(sender, content) {
+        function addMessage(text, sender) {
             const chatContainer = document.getElementById('chatContainer');
-            
-            // Remove welcome message if it exists
-            const welcome = document.getElementById('welcomeMessage');
-            if (welcome) {
-                welcome.style.display = 'none';
-            }
-            
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${sender}`;
             
-            const avatar = document.createElement('div');
-            avatar.className = 'message-avatar';
-            avatar.textContent = sender === 'user' ? 'U' : 'A';
+            const label = document.createElement('div');
+            label.className = 'message-label';
+            label.textContent = sender === 'user' ? 'You' : 'Assistant';
             
-            const contentDiv = document.createElement('div');
-            contentDiv.className = 'message-content';
-            contentDiv.innerHTML = content.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
             
-            messageDiv.appendChild(avatar);
-            messageDiv.appendChild(contentDiv);
+            // Preserve line breaks and bold text
+            bubble.innerHTML = text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\n/g, '<br>');
+            
+            messageDiv.appendChild(label);
+            messageDiv.appendChild(bubble);
             
             chatContainer.appendChild(messageDiv);
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        function addMessageWithTicket(message, ticketContent) {
+        // Removed addTicketOffer function - users will just type yes/no
+
+        function addFullTicket(ticketContent) {
             const chatContainer = document.getElementById('chatContainer');
-            
             const messageDiv = document.createElement('div');
-            messageDiv.className = 'message bot';
+            messageDiv.className = 'message assistant';
             
-            const avatar = document.createElement('div');
-            avatar.className = 'message-avatar';
-            avatar.textContent = 'A';
+            const label = document.createElement('div');
+            label.className = 'message-label';
+            label.textContent = 'Assistant';
             
-            const contentWrapper = document.createElement('div');
-            contentWrapper.style.maxWidth = '70%';
+            const ticketDiv = document.createElement('div');
+            ticketDiv.className = 'ticket-draft';
             
-            const contentDiv = document.createElement('div');
-            contentDiv.className = 'message-content';
-            contentDiv.innerHTML = message.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-            
-            const ticketCard = document.createElement('div');
-            ticketCard.className = 'ticket-card';
-            ticketCard.innerHTML = `
-                <h3><span class="ticket-icon">✓</span> Help Desk Ticket Draft</h3>
+            ticketDiv.innerHTML = `
+                <h4>📋 Support Ticket Draft</h4>
                 <div class="ticket-field">
-                    <label>Ticket ID</label>
-                    <p>${ticketContent.ticket_id}</p>
+                    <strong>Ticket ID:</strong>
+                    <span>${ticketContent.ticket_id}</span>
                 </div>
                 <div class="ticket-field">
-                    <label>Subject</label>
-                    <p>${ticketContent.subject}</p>
+                    <strong>Subject:</strong>
+                    <span>${ticketContent.subject}</span>
                 </div>
                 <div class="ticket-field">
-                    <label>Description</label>
-                    <p>${ticketContent.description}</p>
+                    <strong>Description:</strong>
+                    <span>${ticketContent.description}</span>
                 </div>
                 <div class="ticket-field">
-                    <label>Priority</label>
-                    <span class="priority-badge ${ticketContent.priority}">${ticketContent.priority}</span>
+                    <strong>Priority:</strong>
+                    <span style="text-transform: uppercase;">${ticketContent.priority}</span>
                 </div>
-                <button class="submit-ticket-btn" onclick="submitTicket('${ticketContent.ticket_id}')">Submit Ticket</button>
+                <div class="ticket-actions">
+                    <button class="ticket-btn submit" onclick="submitTicket()">Submit Ticket</button>
+                    <button class="ticket-btn cancel" onclick="cancelTicket()">Cancel</button>
+                </div>
             `;
             
-            contentWrapper.appendChild(contentDiv);
-            contentWrapper.appendChild(ticketCard);
-            
-            messageDiv.appendChild(avatar);
-            messageDiv.appendChild(contentWrapper);
+            currentTicketDraft = ticketContent;
+            messageDiv.appendChild(label);
+            messageDiv.appendChild(ticketDiv);
             
             chatContainer.appendChild(messageDiv);
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        async function submitTicket(ticketId) {
-            const button = event.target;
-            button.textContent = 'Submitting...';
-            button.disabled = true;
+        // Removed respondToTicketOffer - users will type yes/no directly
 
+        async function submitTicket() {
+            if (!currentTicketDraft || isProcessing) return;
+            
+            setProcessing(true);
+            
+            // Disable ticket buttons
+            document.querySelectorAll('.ticket-btn').forEach(btn => btn.disabled = true);
+            
             try {
-                const response = await fetch('/chat', {
+                const response = await fetch('/api/submit-ticket', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        action: 'submit_ticket'
+                    body: JSON.stringify({ 
+                        ticket: currentTicketDraft 
                     })
                 });
-
+                
                 const data = await response.json();
                 
-                if (data.success) {
-                    button.textContent = 'Submitted ✓';
-                    button.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
-                    addMessage('bot', data.message);
+                if (response.ok) {
+                    // Replace ticket draft with success message
+                    const ticketDrafts = document.querySelectorAll('.ticket-draft');
+                    const lastDraft = ticketDrafts[ticketDrafts.length - 1];
+                    if (lastDraft) {
+                        lastDraft.innerHTML = `
+                            <h4>✅ Ticket Submitted Successfully</h4>
+                            <p>${data.message}</p>
+                        `;
+                    }
                 } else {
-                    button.textContent = 'Failed';
-                    button.style.background = '#ef4444';
-                    addMessage('bot', 'Failed to submit ticket. Please try again.');
+                    addMessage('Sorry, I couldn\'t submit the ticket. Please try again.', 'assistant');
                 }
             } catch (error) {
-                console.error('Error submitting ticket:', error);
-                button.textContent = 'Error';
-                button.style.background = '#ef4444';
-                addMessage('bot', 'Error submitting ticket. Please try again.');
+                console.error('Error:', error);
+                addMessage('Sorry, I couldn\'t submit the ticket. Please try again.', 'assistant');
+            } finally {
+                currentTicketDraft = null;
+                setProcessing(false);
             }
         }
 
-        function showTypingIndicator() {
-            const chatContainer = document.getElementById('chatContainer');
+        function cancelTicket() {
+            currentTicketDraft = null;
             
-            const typingDiv = document.createElement('div');
-            typingDiv.className = 'message bot';
-            typingDiv.id = 'typingIndicator';
-            
-            const avatar = document.createElement('div');
-            avatar.className = 'message-avatar';
-            avatar.textContent = 'A';
-            
-            const indicator = document.createElement('div');
-            indicator.className = 'typing-indicator show';
-            indicator.innerHTML = `
-                <div class="typing-dot"></div>
-                <div class="typing-dot"></div>
-                <div class="typing-dot"></div>
-            `;
-            
-            typingDiv.appendChild(avatar);
-            typingDiv.appendChild(indicator);
-            
-            chatContainer.appendChild(typingDiv);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
-
-        function hideTypingIndicator() {
-            const indicator = document.getElementById('typingIndicator');
-            if (indicator) {
-                indicator.remove();
+            // Remove ticket draft UI
+            const ticketDrafts = document.querySelectorAll('.ticket-draft');
+            const lastDraft = ticketDrafts[ticketDrafts.length - 1];
+            if (lastDraft) {
+                lastDraft.innerHTML = '<p>Ticket draft cancelled.</p>';
+                setTimeout(() => {
+                    lastDraft.parentElement.parentElement.remove();
+                }, 2000);
             }
         }
 
-        // Auto-resize textarea
-        const textarea = document.getElementById('messageInput');
-        textarea.addEventListener('input', function() {
-            this.style.height = 'auto';
-            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
-        });
+        function setProcessing(processing) {
+            isProcessing = processing;
+            const submitBtn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('btnText');
+            const btnLoading = document.getElementById('btnLoading');
+            const input = document.getElementById('questionInput');
+            
+            submitBtn.disabled = processing;
+            input.disabled = processing;
+            
+            if (processing) {
+                btnText.style.display = 'none';
+                btnLoading.style.display = 'inline-block';
+            } else {
+                btnText.style.display = 'inline';
+                btnLoading.style.display = 'none';
+            }
+        }
     </script>
 </body>
 </html>

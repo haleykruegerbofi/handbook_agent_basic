@@ -12,9 +12,17 @@ from datetime import datetime
 from dotenv import load_dotenv
 import uuid
 import httpx
+from langsmith import Client
 
 # Load environment variables
 load_dotenv()
+
+# Configure LangSmith tracing (optional but useful for debugging)
+if os.getenv("LANGCHAIN_API_KEY"):
+    os.environ["LANGCHAIN_TRACING_V2"] = "true"
+    print(f"[INIT] LangSmith tracing enabled for project: {os.getenv('LANGCHAIN_PROJECT', 'default')}")
+else:
+    print("[INIT] LangSmith tracing not configured (set LANGCHAIN_API_KEY to enable)")
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)  # For session management
@@ -35,7 +43,7 @@ HANDBOOK_CHUNKS = []
 
 # Hardcoded path to the employee handbook PDF
 # Place the PDF in the same folder as app.py or update this path
-HANDBOOK_PATH = r"employee_handbook.pdf"
+HANDBOOK_PATH = r"C:\Users\haley.krueger\Downloads\Employee Handbook - Multi State - 1320.pdf"
 
 # Simple keyword helpers to prioritize relevant chunks without full RAG
 def _select_candidate_chunks(question: str, chunks: List[str], max_candidates: int = 3) -> List[int]:
@@ -186,10 +194,12 @@ def search_handbook_tool(state: GraphState) -> GraphState:
         preview = chunk[:120].replace('\n', ' ')
         print(f"[SEARCH] Checking chunk idx={idx} (order {order}/{len(indices_to_search)}) | chars={len(chunk)} | preview='{preview}'")
         chain = search_prompt | llm
+        # Add minimal config for LangSmith tracing on individual LLM calls
+        llm_config = {"tags": [f"chunk_{idx}", "search_handbook"]} if os.getenv("LANGCHAIN_API_KEY") else {}
         response = chain.invoke({
             "question": question,
             "content": chunk
-        })
+        }, config=llm_config)
         
         answer_text = response.content.strip()
         print(f"[SEARCH] Model response len={len(answer_text)} | starts_with_NOT_FOUND={answer_text.startswith('NOT_FOUND')}")
@@ -317,143 +327,177 @@ workflow.add_edge("draft_ticket", END)
 # Compile the graph
 app_graph = workflow.compile()
 
+# Optional: Set a custom run name for LangSmith tracing
+def get_langsmith_config(question: str = None):
+    """Get LangSmith configuration with custom metadata"""
+    if not os.getenv("LANGCHAIN_API_KEY"):
+        return {}
+    
+    config = {
+        "callbacks": [],
+        "metadata": {
+            "application": "employee-handbook-assistant",
+            "environment": os.getenv("FLASK_ENV", "production")
+        }
+    }
+    
+    if question:
+        config["run_name"] = f"Question: {question[:50]}..."
+    
+    return config
+
 @app.route('/')
 def index():
     """Render the main chat interface"""
     return render_template('index.html')
 
-@app.route('/chat', methods=['POST'])
-def chat():
-    """Handle chat messages"""
+@app.route('/api/ask', methods=['POST'])
+def api_ask():
+    """Handle API questions from the new UI"""
     data = request.json
-    question = data.get('message', '')
-    action = data.get('action', 'ask')
+    question = data.get('question', '')
+    awaiting_response = data.get('awaiting_response', False)
     
-    if action == 'ask':
-        # Greeting shortcut
-        if question.strip().lower() in {"hi", "hello", "hey"}:
-            return jsonify({
-                "answer": "hi! I can answer questions about the employee handbook",
+    # Greeting shortcut
+    if question.strip().lower() in {"hi", "hello", "hey"}:
+        return jsonify({
+            "answer": "Hi! I can answer questions about the employee handbook. Feel free to ask about company policies, benefits, procedures, and more.",
+            "found_in_handbook": False,
+            "offer_ticket": False,
+            "ticket_drafted": False,
+            "ticket_content": {}
+        })
+
+    # If user is responding to a pending ticket offer
+    if awaiting_response or session.get('offer_pending', False):
+        normalized = question.strip().lower()
+        yes_set = {"yes", "y", "yeah", "yep", "sure", "please", "ok", "okay", "yes please"}
+        no_set = {"no", "n", "nope", "nah"}
+        original_question = session.get('offer_question', '')
+        # Clear the offer by default; set again if unrecognized
+        session.pop('offer_pending', None)
+        session.pop('offer_question', None)
+        if normalized in yes_set:
+            # Run the graph with acceptance flag to draft ticket
+            initial_state = {
+                "question": original_question or question,
+                "answer": "",
                 "found_in_handbook": False,
+                "is_work_related": True,
+                "user_accepted_ticket": True,
                 "ticket_drafted": False,
                 "ticket_content": {},
-                "is_work_related": True
+                "messages": []
+            }
+            langsmith_config = get_langsmith_config(original_question or question)
+            result = app_graph.invoke(initial_state, config=langsmith_config)
+            response = {
+                "answer": result["answer"],
+                "found_in_handbook": result["found_in_handbook"],
+                "offer_ticket": False,
+                "ticket_drafted": result.get("ticket_drafted", False),
+                "ticket_content": result.get("ticket_content", {}),
+                "original_question": original_question
+            }
+            if result.get("ticket_drafted"):
+                session['pending_ticket'] = result.get("ticket_content", {})
+            return jsonify(response)
+        elif normalized in no_set:
+            return jsonify({
+                "answer": "Okay, I won't create a ticket. You can ask another question about the handbook anytime.",
+                "found_in_handbook": False,
+                "offer_ticket": False,
+                "ticket_drafted": False,
+                "ticket_content": {}
             })
-
-        # If user is responding to a pending ticket offer
-        if session.get('offer_pending', False):
-            normalized = question.strip().lower()
-            yes_set = {"yes", "y", "yeah", "yep", "sure", "please", "ok", "okay", "yes please"}
-            no_set = {"no", "n", "nope", "nah"}
-            original_question = session.get('offer_question', '')
-            # Clear the offer by default; set again if unrecognized
-            session.pop('offer_pending', None)
-            session.pop('offer_question', None)
-            if normalized in yes_set:
-                # Run the graph with acceptance flag to draft ticket
-                initial_state = {
-                    "question": original_question or question,
-                    "answer": "",
-                    "found_in_handbook": False,
-                    "is_work_related": True,
-                    "user_accepted_ticket": True,
-                    "ticket_drafted": False,
-                    "ticket_content": {},
-                    "messages": []
-                }
-                result = app_graph.invoke(initial_state)
-                response = {
-                    "answer": result["answer"],
-                    "found_in_handbook": result["found_in_handbook"],
-                    "ticket_drafted": result.get("ticket_drafted", False),
-                    "ticket_content": result.get("ticket_content", {}),
-                    "is_work_related": result.get("is_work_related", True)
-                }
-                if result.get("ticket_drafted"):
-                    session['pending_ticket'] = result.get("ticket_content", {})
-                return jsonify(response)
-            elif normalized in no_set:
-                return jsonify({
-                    "answer": "Okay, I won't create a ticket. You can ask another question about the handbook anytime.",
-                    "found_in_handbook": False,
-                    "ticket_drafted": False,
-                    "ticket_content": {},
-                    "is_work_related": True
-                })
-            else:
-                # Unrecognized response, re-prompt and keep offer pending
-                session['offer_pending'] = True
-                session['offer_question'] = original_question
-                return jsonify({
-                    "answer": "Please reply with 'yes' or 'no'. Would you like me to draft a ticket to the helpdesk?",
-                    "found_in_handbook": False,
-                    "ticket_drafted": False,
-                    "ticket_content": {},
-                    "is_work_related": True
-                })
-        # Ensure handbook is loaded from the hardcoded path before answering
-        global HANDBOOK_CONTENT, HANDBOOK_CHUNKS
-        if not HANDBOOK_CHUNKS and os.path.exists(HANDBOOK_PATH):
-            content = load_pdf(HANDBOOK_PATH)
-            if content:
-                HANDBOOK_CONTENT = content
-                HANDBOOK_CHUNKS = chunk_text(content, max_tokens=8000)
-        print(f"[CHAT] Received question: '{question}' | chunks_loaded={len(HANDBOOK_CHUNKS)}")
-        # Process the question through the graph
-        initial_state = {
-            "question": question,
-            "answer": "",
-            "found_in_handbook": False,
-            "is_work_related": False,
-            "user_accepted_ticket": False,
-            "ticket_drafted": False,
-            "ticket_content": {},
-            "messages": []
-        }
-        
-        result = app_graph.invoke(initial_state)
-        print(f"[CHAT] Graph result: found_in_handbook={result['found_in_handbook']} | ticket_drafted={result.get('ticket_drafted', False)}")
-        
-        response = {
-            "answer": result["answer"],
-            "found_in_handbook": result["found_in_handbook"],
-            "ticket_drafted": result.get("ticket_drafted", False),
-            "ticket_content": result.get("ticket_content", {}),
-            "is_work_related": result.get("is_work_related", False)
-        }
-        
-        # Store ticket in session if drafted
-        if result.get("ticket_drafted"):
-            session['pending_ticket'] = result.get("ticket_content", {})
         else:
-            # If no answer found but work-related, set a pending offer for next user response
-            if not result.get("found_in_handbook", False) and result.get("is_work_related", False):
-                session['offer_pending'] = True
-                session['offer_question'] = question
+            # Unrecognized response, re-prompt and keep offer pending
+            session['offer_pending'] = True
+            session['offer_question'] = original_question
+            return jsonify({
+                "answer": "Please reply with 'yes' or 'no'. Would you like me to draft a ticket to the helpdesk?",
+                "found_in_handbook": False,
+                "offer_ticket": False,
+                "ticket_drafted": False,
+                "ticket_content": {}
+            })
+    # Ensure handbook is loaded from the hardcoded path before answering
+    global HANDBOOK_CONTENT, HANDBOOK_CHUNKS
+    if not HANDBOOK_CHUNKS and os.path.exists(HANDBOOK_PATH):
+        content = load_pdf(HANDBOOK_PATH)
+        if content:
+            HANDBOOK_CONTENT = content
+            HANDBOOK_CHUNKS = chunk_text(content, max_tokens=4000)
+    print(f"[API] Received question: '{question}' | chunks_loaded={len(HANDBOOK_CHUNKS)}")
+    # Process the question through the graph
+    initial_state = {
+        "question": question,
+        "answer": "",
+        "found_in_handbook": False,
+        "is_work_related": False,
+        "user_accepted_ticket": False,
+        "ticket_drafted": False,
+        "ticket_content": {},
+        "messages": []
+    }
         
-        return jsonify(response)
+    # Invoke with LangSmith tracing
+    langsmith_config = get_langsmith_config(question)
+    result = app_graph.invoke(initial_state, config=langsmith_config)
+    print(f"[API] Graph result: found_in_handbook={result['found_in_handbook']} | ticket_drafted={result.get('ticket_drafted', False)}")
     
-    elif action == 'submit_ticket':
-        # Handle ticket submission
-        ticket = session.get('pending_ticket', {})
-        if ticket:
-            # Here you would normally submit to a real ticketing system
-            # For now, we'll just confirm submission
-            session.pop('pending_ticket', None)
-            return jsonify({
-                "success": True,
-                "message": f"Ticket {ticket.get('ticket_id', 'UNKNOWN')} has been submitted successfully. You will receive a response within 24-48 hours.",
-                "ticket_id": ticket.get('ticket_id', 'UNKNOWN')
-            })
-        else:
-            return jsonify({
-                "success": False,
-                "message": "No pending ticket found."
-            })
+    response = {
+        "answer": result["answer"],
+        "found_in_handbook": result["found_in_handbook"],
+        "offer_ticket": False,
+        "ticket_drafted": result.get("ticket_drafted", False),
+        "ticket_content": result.get("ticket_content", {}),
+        "original_question": question
+    }
+    
+    # If no answer found but work-related, offer ticket creation
+    if not result.get("found_in_handbook", False) and result.get("is_work_related", False):
+        response["offer_ticket"] = True
+        session['offer_pending'] = True
+        session['offer_question'] = question
+    
+    # Store ticket in session if drafted
+    if result.get("ticket_drafted"):
+        session['pending_ticket'] = result.get("ticket_content", {})
+    
+    return jsonify(response)
+    
+@app.route('/api/submit-ticket', methods=['POST'])
+def api_submit_ticket():
+    """Handle ticket submission from the new UI"""
+    data = request.json
+    ticket = data.get('ticket', session.get('pending_ticket', {}))
+    
+    if ticket:
+        # Here you would normally submit to a real ticketing system
+        # For now, we'll just confirm submission
+        session.pop('pending_ticket', None)
+        return jsonify({
+            "success": True,
+            "message": f"Ticket {ticket.get('ticket_id', 'UNKNOWN')} has been submitted successfully. You will receive a response within 24-48 hours.",
+            "ticket_id": ticket.get('ticket_id', 'UNKNOWN')
+        })
+    else:
+        return jsonify({
+            "success": False,
+            "message": "No pending ticket found."
+        })
 
 """
 Removed manual load endpoint; handbook is auto-loaded from HANDBOOK_PATH
 """
+
+# Keep old /chat endpoint for backwards compatibility
+@app.route('/chat', methods=['POST'])
+def chat_legacy():
+    """Legacy chat endpoint - redirects to new API"""
+    data = request.json
+    return api_ask()
 
 @app.route('/status', methods=['GET'])
 def status():
