@@ -12,17 +12,14 @@ from datetime import datetime
 from dotenv import load_dotenv
 import uuid
 import httpx
-from langsmith import Client
+"""
+Note: LangSmith integration has been removed/disabled for clarity.
+"""
 
 # Load environment variables
 load_dotenv()
 
-# Configure LangSmith tracing (optional but useful for debugging)
-if os.getenv("LANGCHAIN_API_KEY"):
-    os.environ["LANGCHAIN_TRACING_V2"] = "true"
-    print(f"[INIT] LangSmith tracing enabled for project: {os.getenv('LANGCHAIN_PROJECT', 'default')}")
-else:
-    print("[INIT] LangSmith tracing not configured (set LANGCHAIN_API_KEY to enable)")
+print("[INIT] LangSmith tracing disabled in this build")
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)  # For session management
@@ -153,6 +150,7 @@ def search_handbook_tool(state: GraphState) -> GraphState:
     """)
     
     # Search through chunks for relevant information
+    print("[SEARCH] Building search prompt and preparing to query the model")
     best_answer = None
     found = False
     
@@ -163,12 +161,11 @@ def search_handbook_tool(state: GraphState) -> GraphState:
         preview = chunk[:120].replace('\n', ' ')
         print(f"[SEARCH] Checking chunk {idx+1}/{len(HANDBOOK_CHUNKS)} | chars={len(chunk)} | preview='{preview}'")
         chain = search_prompt | llm
-        # Add minimal config for LangSmith tracing on individual LLM calls
-        llm_config = {"tags": [f"chunk_{idx}", "search_handbook"]} if os.getenv("LANGCHAIN_API_KEY") else {}
+        print(f"[SEARCH] Invoking LLM for chunk {idx+1}")
         response = chain.invoke({
             "question": question,
             "content": chunk
-        }, config=llm_config)
+        })
         
         answer_text = response.content.strip()
         print(f"[SEARCH] Model response len={len(answer_text)} | starts_with_NOT_FOUND={answer_text.startswith('NOT_FOUND')}")
@@ -194,6 +191,7 @@ def search_handbook_tool(state: GraphState) -> GraphState:
         """)
         
         work_chain = work_check_prompt | llm
+        print("[SEARCH] Invoking LLM for work-related check")
         work_response = work_chain.invoke({"question": question})
         
         is_work_related = work_response.content.strip().upper() == "YES"
@@ -296,24 +294,7 @@ workflow.add_edge("draft_ticket", END)
 # Compile the graph
 app_graph = workflow.compile()
 
-# Optional: Set a custom run name for LangSmith tracing
-def get_langsmith_config(question: str = None):
-    """Get LangSmith configuration with custom metadata"""
-    if not os.getenv("LANGCHAIN_API_KEY"):
-        return {}
-    
-    config = {
-        "callbacks": [],
-        "metadata": {
-            "application": "employee-handbook-assistant",
-            "environment": os.getenv("FLASK_ENV", "production")
-        }
-    }
-    
-    if question:
-        config["run_name"] = f"Question: {question[:50]}..."
-    
-    return config
+# Removed LangSmith config helper
 
 @app.route('/')
 def index():
@@ -358,8 +339,8 @@ def api_ask():
                 "ticket_content": {},
                 "messages": []
             }
-            langsmith_config = get_langsmith_config(original_question or question)
-            result = app_graph.invoke(initial_state, config=langsmith_config)
+            print("[API] User accepted ticket offer → invoking graph to draft ticket")
+            result = app_graph.invoke(initial_state)
             response = {
                 "answer": result["answer"],
                 "found_in_handbook": result["found_in_handbook"],
@@ -410,9 +391,8 @@ def api_ask():
         "messages": []
     }
         
-    # Invoke with LangSmith tracing
-    langsmith_config = get_langsmith_config(question)
-    result = app_graph.invoke(initial_state, config=langsmith_config)
+    print("[API] Invoking LangGraph with initial state")
+    result = app_graph.invoke(initial_state)
     print(f"[API] Graph result: found_in_handbook={result['found_in_handbook']} | ticket_drafted={result.get('ticket_drafted', False)}")
     
     response = {

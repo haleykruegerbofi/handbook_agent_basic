@@ -2,6 +2,7 @@
 OPENAI_API_KEY=your_openai_api_key_here
 
 # LangSmith Configuration (for tracing and monitoring)
+# Set LANGCHAIN_TRACING_V2=false to disable if you have SSL/corporate firewall issues
 LANGCHAIN_TRACING_V2=true
 LANGCHAIN_ENDPOINT=https://api.smith.langchain.com
 LANGCHAIN_API_KEY=your_langsmith_api_key_here

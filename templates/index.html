@@ -13,7 +13,7 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #001a8d9b 0%, #304cc7 100%);
+            background: linear-gradient(135deg, #0b1e34 0%, #112e4e 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -28,13 +28,16 @@
             border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             overflow: hidden;
+            border: none;
         }
 
         .header {
-            background: linear-gradient(135deg, #001a8d9b 0%, #304cc7 100%);
+            background: linear-gradient(135deg, #0b1e34 0%, #112e4e 100%);
             color: white;
             padding: 30px;
             text-align: center;
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
         }
 
         .header h1 {
@@ -98,7 +101,7 @@
         }
 
         .message.user .bubble {
-            background: #304cc7;
+            background: #1c3556;
             color: white;
             margin-left: auto;
         }
@@ -144,12 +147,12 @@
 
         .question-input:focus {
             outline: none;
-            border-color: #0423ad;
+            border-color: #1c3556;
         }
 
         .submit-btn {
             padding: 12px 30px;
-            background: linear-gradient(135deg, #001a8d9b 0%, #304cc7 100%);
+            background: linear-gradient(135deg, #0b1e34 0%, #1c3556 100%);
             color: white;
             border: none;
             border-radius: 25px;
@@ -257,7 +260,7 @@
         <div class="header">
             <!-- Logo Section - Axos Bank logo with emoji fallback -->
             <div class="logo">
-                <img src="/static/Axos_Bank_Palette5-Black.png" alt="Axos Bank" onerror="this.style.display='none'; document.getElementById('logoEmoji').style.display='block';">
+                <img src="/static/axos-bank-862d8977d2df497884f05c147bf84437.png" alt="Axos Bank" onerror="this.style.display='none'; document.getElementById('logoEmoji').style.display='block';">
                 <span id="logoEmoji" class="logo-emoji" style="display:none;">🏢</span>
             </div>
             
