@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+.env
+.env.*
+
+# Project-specific files to exclude
+employee_handbook.pdf
+*.pdf
+*.log
+
+# Testing
+.cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build/Distribution
+build/
+dist/
+*.egg-info/
+*.egg
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Flask
+instance/
+.webassets-cache
+
+# Database
+*.db
+*.sqlite
