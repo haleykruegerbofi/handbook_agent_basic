@@ -45,36 +45,9 @@ HANDBOOK_CHUNKS = []
 # Place the PDF in the same folder as app.py or update this path
 HANDBOOK_PATH = r"C:\Users\haley.krueger\Downloads\Employee Handbook - Multi State - 1320.pdf"
 
-# Simple keyword helpers to prioritize relevant chunks without full RAG
-def _select_candidate_chunks(question: str, chunks: List[str], max_candidates: int = 3) -> List[int]:
-    """Return indices of top candidate chunks based on keyword heuristics."""
-    question_lc = question.lower()
-    keywords: List[str] = []
-    if "pto" in question_lc:
-        keywords += ["pto", "paid time off", "vacation", "time off"]
-    if "vacation" in question_lc:
-        keywords += ["vacation", "paid time off", "pto", "time off"]
-    if "leave" in question_lc:
-        keywords += ["leave", "leaves of absence", "time off", "pto", "paid time off"]
-    if "holiday" in question_lc:
-        keywords += ["holiday", "holidays", "time off"]
-    # Fallback: use top non-trivial words from the question
-    if not keywords:
-        keywords = [w for w in question_lc.split() if len(w) >= 3][:5]
-    
-    scored: List[tuple[int, int]] = []
-    for idx, chunk in enumerate(chunks):
-        chunk_lc = chunk.lower()
-        score = 0
-        for kw in keywords:
-            score += chunk_lc.count(kw)
-        scored.append((idx, score))
-    
-    # Sort by score desc and take indices with score > 0
-    scored.sort(key=lambda x: x[1], reverse=True)
-    candidates = [idx for idx, s in scored if s > 0][:max_candidates]
-    print(f"[SELECT] Keywords={keywords} | scores_top={scored[:max_candidates]} | candidates={candidates}")
-    return candidates
+# Removed keyword-based chunk selection - using sequential search instead
+# The keyword approach was too specific to PTO/vacation/leave questions
+# With only 5 chunks, sequential search is simple and performs well
 
 class GraphState(TypedDict):
     """State for the graph"""
@@ -183,16 +156,12 @@ def search_handbook_tool(state: GraphState) -> GraphState:
     best_answer = None
     found = False
     
-    # Prefer searching candidate chunks first based on simple keyword heuristics
-    candidate_indices = _select_candidate_chunks(question, HANDBOOK_CHUNKS, max_candidates=3)
-    indices_to_search = candidate_indices if candidate_indices else list(range(len(HANDBOOK_CHUNKS)))
-    print(f"[SEARCH] Indices to search (ordered): {indices_to_search}")
+    # Search chunks sequentially (simple, no keyword bias)
+    print(f"[SEARCH] Searching {len(HANDBOOK_CHUNKS)} chunks sequentially")
     
-    for order, idx in enumerate(indices_to_search, start=1):
-        chunk = HANDBOOK_CHUNKS[idx]
-        
+    for idx, chunk in enumerate(HANDBOOK_CHUNKS):
         preview = chunk[:120].replace('\n', ' ')
-        print(f"[SEARCH] Checking chunk idx={idx} (order {order}/{len(indices_to_search)}) | chars={len(chunk)} | preview='{preview}'")
+        print(f"[SEARCH] Checking chunk {idx+1}/{len(HANDBOOK_CHUNKS)} | chars={len(chunk)} | preview='{preview}'")
         chain = search_prompt | llm
         # Add minimal config for LangSmith tracing on individual LLM calls
         llm_config = {"tags": [f"chunk_{idx}", "search_handbook"]} if os.getenv("LANGCHAIN_API_KEY") else {}
@@ -206,7 +175,7 @@ def search_handbook_tool(state: GraphState) -> GraphState:
         if answer_text != "NOT_FOUND" and not answer_text.startswith("NOT_FOUND"):
             best_answer = answer_text
             found = True
-            print(f"[SEARCH] Found answer in chunk idx={idx}")
+            print(f"[SEARCH] Found answer in chunk {idx+1}")
             break  # Found an answer, stop searching
     
     if found and best_answer:
